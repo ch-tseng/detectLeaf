@@ -6,6 +6,7 @@ from scipy.spatial import distance as dist
 import numpy as np
 import mahotas
 import cv2
+import imutils
 import argparse
 
 ap = argparse.ArgumentParser()
@@ -13,20 +14,23 @@ ap.add_argument("-s", "--source", required=True, help="Path to the source of sha
 ap.add_argument("-t", "--target", required=True, help="Path to the target image")
 args = vars(ap.parse_args())
 
-def describe_shapes(image):
+def describe_shapes(image, title):
 	# initialize the list of shape features
 	shapeFeatures = []
 
 	# convert the image to grayscale, blur it, and threshold it
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-	blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        gray = (255-gray)
+	blurred = cv2.GaussianBlur(gray, (3, 3), 0)
 	thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)[1]
 
 	# perform a series of dilations and erosions to close holes
 	# in the shapes
 	thresh = cv2.dilate(thresh, None, iterations=4)
 	thresh = cv2.erode(thresh, None, iterations=2)
-
+        cv2.imshow(title, thresh)
+        #thresh = cv2.dilate(thresh, None, iterations=4)
+        #thresh = cv2.erode(thresh, None, iterations=2)
 	# detect contours in the edge map
 	(cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
 		cv2.CHAIN_APPROX_SIMPLE)
@@ -52,11 +56,12 @@ def describe_shapes(image):
 # load the reference image containing the object we want to detect,
 # then describe the game region
 refImage = cv2.imread(args["target"])
-(_, gameFeatures) = describe_shapes(refImage)
+refImage = imutils.resize(refImage, height = 120)
+(_, gameFeatures) = describe_shapes(refImage, "Target")
 
 # load the shapes image, then describe each of the images in the image
 shapesImage = cv2.imread(args["source"])
-(cnts, shapeFeatures) = describe_shapes(shapesImage)
+(cnts, shapeFeatures) = describe_shapes(shapesImage, "Sources")
 
 # compute the Euclidean distances between the video game features
 # and all other shapes in the second image, then find index of the
